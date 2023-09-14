@@ -3,7 +3,7 @@ import { useSpeechSynthesis, useFetch } from "@vueuse/core";
 import { ref, onMounted, watchEffect } from "vue";
 
 const { data, isFetching, error, execute } = useFetch<IDataJoke[]>(import.meta.env.VITE_JOKE_URL).get().json();
-let speech;
+let speech: ReturnType<typeof useSpeechSynthesis>;
 
 const voice = ref<SpeechSynthesisVoice>(
   undefined as unknown as SpeechSynthesisVoice
@@ -43,6 +43,7 @@ function play() {
     console.log("resume");
     window.speechSynthesis.resume();
   } else {
+    execute();
     speech.speak();
   }
 }
@@ -77,7 +78,6 @@ function stop() {
               v-for="(voice, i) in voices"
               :key="i"
               :value="voice"
-              :selected="voice === 'en-US'"
             >
               {{ `${voice.name} (${voice.lang})` }}
             </option>

@@ -103,7 +103,7 @@ function stop() {
         </div>
 
         <div>
-          <button :disabled="isFetching" @click="execute">
+          <button :disabled="isFetching" @click="() => execute()">
             {{ isFetching ? "Reload" : "Execute" }}
           </button>
           <button :disabled="speech.isPlaying.value || isFetching" @click="play">
@@ -115,7 +115,7 @@ function stop() {
           >
             Pause
           </button>
-          <button :disabled="!speech.isPlaying.value" class="red" @click="stop">
+          <button :disabled="!speech.isPlaying.value" @click="stop">
             Stop
           </button>
         </div>

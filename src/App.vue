@@ -13,7 +13,7 @@ const rate = ref(1);
 
 watchEffect(() => {
     speech = useSpeechSynthesis(
-      data.value != null ? data.value[0].setup : "Restart Again",
+      !isFetching.value && data.value != null ? data.value[0].setup : "Restart Again",
       {
         voice,
         pitch,
@@ -43,7 +43,7 @@ function play() {
     console.log("resume");
     window.speechSynthesis.resume();
   } else {
-    if(!isFetching.value){
+    if(!isFetching.value) {
       speech.speak();
     }
   }
@@ -71,6 +71,7 @@ function stop() {
       <div>
         <div>{{ isFetching ? "Still Fetching" : '' }}</div>
         <div>{{ error ? "Error :" + error : "" }}</div>
+        {{ data }}
         <label>Language</label>
         <div>
           <select v-model="voice">
@@ -102,12 +103,14 @@ function stop() {
         </div>
 
         <div>
+          <button :disabled="isFetching" @click="execute">
+            {{ isFetching ? "Reload" : "Execute" }}
+          </button>
           <button :disabled="speech.isPlaying.value || isFetching" @click="play">
             {{ speech.status.value === "pause" ? "Resume" : "Speak" }}
           </button>
           <button
             :disabled="!speech.isPlaying.value"
-            class="orange"
             @click="pause"
           >
             Pause

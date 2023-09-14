@@ -12,14 +12,14 @@ const pitch = ref(1);
 const rate = ref(1);
 
 watchEffect(() => {
-  speech = useSpeechSynthesis(
-    data.value != null ? data.value[0].setup : "Restart Again",
-    {
-      voice,
-      pitch,
-      rate,
-    }
-  );
+    speech = useSpeechSynthesis(
+      data.value != null ? data.value[0].setup : "Restart Again",
+      {
+        voice,
+        pitch,
+        rate,
+      }
+    );
 })
 
 
@@ -43,8 +43,9 @@ function play() {
     console.log("resume");
     window.speechSynthesis.resume();
   } else {
-    execute();
-    speech.speak();
+    if(!isFetching.value){
+      speech.speak();
+    }
   }
 }
 

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { useSpeechSynthesis, useFetch } from "@vueuse/core";
 import { ref, onMounted, watchEffect } from "vue";
+import Toast from "./components/Toast.vue"
 
-const { data, isFetching, error, execute } = useFetch<IDataJoke[]>(import.meta.env.VITE_JOKE_URL).get().json();
+const { data, isFetching, error, execute, statusCode } = useFetch<IDataJoke[]>(import.meta.env.VITE_JOKE_URL).get().json();
 let speech: ReturnType<typeof useSpeechSynthesis>;
 
 const voice = ref<SpeechSynthesisVoice>(
@@ -10,11 +11,16 @@ const voice = ref<SpeechSynthesisVoice>(
 );
 const pitch = ref(1);
 const rate = ref(1);
+const refToast = ref({
+  message: "",
+  show: false
+});
 
 watchEffect(() => {
-    speech = useSpeechSynthesis(
+  speech = useSpeechSynthesis(
       !isFetching.value && data.value != null ? data.value[0].setup : "Restart Again",
       {
+        lang: "en-US",
         voice,
         pitch,
         rate,
@@ -22,41 +28,48 @@ watchEffect(() => {
     );
 })
 
-
-
-let synth: SpeechSynthesis;
-
-const voices = ref<SpeechSynthesisVoice[]>([])
+// let synth: SpeechSynthesis;
+//
+// const voices = ref<SpeechSynthesisVoice[]>([])
+async function onKeyUpKeyboard(event: KeyboardEvent){
+  if(['j',"J"].includes(event.key)){
+    play();
+    execute();
+  }
+}
 
 onMounted(() => {
-  if (speech.isSupported.value) {
-    // load at last
-    setTimeout(() => {
-      synth = window.speechSynthesis;
-      voices.value = synth.getVoices();
-      voice.value = voices.value[0];
-    });
-  }
+  document.body.addEventListener('keyup',onKeyUpKeyboard)
+  // if (speech.isSupported.value) {
+  //   // load at last
+  //   setTimeout(() => {
+  //     synth = window.speechSynthesis;
+  //     voices.value = synth.getVoices();
+  //     voice.value = voices.value[0];
+  //   });
+  // }
 });
 function play() {
+  window.speechSynthesis.cancel();
+  refToast.value = {
+    show: true,
+    message: "Refresh"
+  }
   if (speech.status.value === "pause") {
     console.log("resume");
     window.speechSynthesis.resume();
   } else {
-    if(!isFetching.value) {
+    if(!isFetching.value && statusCode.value === 200) {
+      setTimeout(function(){ 
+        refToast.value = {
+          show: false,
+          message: ''
+        }
+      }, 3000);
       speech.speak();
     }
   }
 }
-
-function pause() {
-  window.speechSynthesis.pause();
-}
-
-function stop() {
-  speech.stop();
-}
-
 </script>
 
 <template>
@@ -69,22 +82,8 @@ function stop() {
     </div>
     <div v-else>
       <div>
-        <div>{{ isFetching ? "Still Fetching" : '' }}</div>
+        <div style="font-size: 100px;">🤖</div>
         <div>{{ error ? "Error :" + error : "" }}</div>
-        {{ data }}
-        <label>Language</label>
-        <div>
-          <select v-model="voice">
-            <option disabled>Select Language</option>
-            <option
-              v-for="(voice, i) in voices"
-              :key="i"
-              :value="voice"
-            >
-              {{ `${voice.name} (${voice.lang})` }}
-            </option>
-          </select>
-        </div>
 
         <br />
         <div>
@@ -103,23 +102,15 @@ function stop() {
         </div>
 
         <div>
-          <button :disabled="isFetching" @click="() => execute()">
-            {{ isFetching ? "Reload" : "Execute" }}
-          </button>
-          <button :disabled="speech.isPlaying.value || isFetching" @click="play">
-            {{ speech.status.value === "pause" ? "Resume" : "Speak" }}
-          </button>
-          <button
-            :disabled="!speech.isPlaying.value"
-            @click="pause"
-          >
-            Pause
-          </button>
-          <button :disabled="!speech.isPlaying.value" @click="stop">
-            Stop
+          <button :disabled="speech.isPlaying.value || isFetching" @click="() => {
+            play();
+            execute();
+          }">
+            Telling me about Joke
           </button>
         </div>
       </div>
     </div>
+    <Toast :show="refToast.show" :message="refToast.message" />
   </div>
 </template>

@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { useSpeechSynthesis, useFetch } from "@vueuse/core";
 import { ref, onMounted, watchEffect } from "vue";
+import { useGlobalToast } from "./store"
 import Toast from "./components/Toast.vue"
 
 const { data, isFetching, error, execute, statusCode } = useFetch<IDataJoke[]>(import.meta.env.VITE_JOKE_URL).get().json();
 let speech: ReturnType<typeof useSpeechSynthesis>;
+let { refToast } = useGlobalToast();
 
 const voice = ref<SpeechSynthesisVoice>(
   undefined as unknown as SpeechSynthesisVoice
 );
 const pitch = ref(1);
 const rate = ref(1);
-const refToast = ref({
-  message: "",
-  show: false
-});
 
 watchEffect(() => {
   speech = useSpeechSynthesis(
@@ -28,9 +26,6 @@ watchEffect(() => {
     );
 })
 
-// let synth: SpeechSynthesis;
-//
-// const voices = ref<SpeechSynthesisVoice[]>([])
 async function onKeyUpKeyboard(event: KeyboardEvent){
   if(['j',"J"].includes(event.key)){
     play();
@@ -40,14 +35,6 @@ async function onKeyUpKeyboard(event: KeyboardEvent){
 
 onMounted(() => {
   document.body.addEventListener('keyup',onKeyUpKeyboard)
-  // if (speech.isSupported.value) {
-  //   // load at last
-  //   setTimeout(() => {
-  //     synth = window.speechSynthesis;
-  //     voices.value = synth.getVoices();
-  //     voice.value = voices.value[0];
-  //   });
-  // }
 });
 function play() {
   window.speechSynthesis.cancel();
@@ -55,19 +42,14 @@ function play() {
     show: true,
     message: "Refresh"
   }
-  if (speech.status.value === "pause") {
-    console.log("resume");
-    window.speechSynthesis.resume();
-  } else {
-    if(!isFetching.value && statusCode.value === 200) {
-      setTimeout(function(){ 
-        refToast.value = {
-          show: false,
-          message: ''
-        }
-      }, 3000);
-      speech.speak();
-    }
+  if(!isFetching.value && statusCode.value === 200) {
+    setTimeout(function(){ 
+      refToast.value = {
+        show: false,
+        message: ''
+      }
+    }, 3000);
+    speech.speak();
   }
 }
 </script>
@@ -111,6 +93,6 @@ function play() {
         </div>
       </div>
     </div>
-    <Toast :show="refToast.show" :message="refToast.message" />
+    <Toast/>
   </div>
 </template>

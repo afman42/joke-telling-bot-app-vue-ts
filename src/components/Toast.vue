@@ -1,19 +1,19 @@
 <script setup lang="ts">
-defineProps({
-  show: {
-    type: Boolean,
-    default: false,
-  },
-  message: {
-    type: String,
-    default: ""
-  }
-});
+/*
+  Import store
+  import { useGlobalToast } from "../store";
+  Do not Initialize variabel 
+*/
+import { useGlobalToast } from "../store";
 </script>
+
 <template>
   <teleport to="body">
-    <div id="snackbar" :class="show ? 'show' : null">
-      {{ message }}
+    <div
+      id="snackbar"
+      :class="useGlobalToast().refToast.value.show ? 'show' : ''"
+    >
+      {{ useGlobalToast().refToast.value.message }}
     </div>
   </teleport>
 </template>

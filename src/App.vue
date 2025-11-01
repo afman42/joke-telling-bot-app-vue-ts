@@ -3,7 +3,7 @@ import Toast from "./components/Toast.vue";
 import JokeFetcher from "./components/Joke/JokeFetcher.vue";
 import VoiceControls from "./components/Joke/VoiceControls.vue";
 import KeyboardHandler from "./components/Joke/KeyboardHandler.vue";
-import { ref } from "vue";
+import { ref, computed } from "vue";
 
 // Get the API URL - fallback to empty string if environment variable is not available
 const apiUrl = import.meta.env.VITE_JOKE_URL || "";
@@ -11,6 +11,15 @@ const apiUrl = import.meta.env.VITE_JOKE_URL || "";
 // Reference to child components
 const jokeFetcherRef = ref<InstanceType<typeof JokeFetcher> | null>(null);
 const voiceControlsRef = ref<InstanceType<typeof VoiceControls> | null>(null);
+
+// Computed property to safely access error message
+const errorMessage = computed(() => {
+  const errorRef = (jokeFetcherRef.value as any)?.error; // Type assertion to avoid typing issues
+  if (errorRef?.value) {
+    return errorRef.value.message || "Failed to load joke";
+  }
+  return null;
+});
 
 // Handler for J key press
 const handleJKeyPress = () => {
@@ -27,7 +36,7 @@ const handleJKeyPress = () => {
   <div role="main" aria-label="Joke Telling Bot Application">
     <JokeFetcher ref="jokeFetcherRef" :url="apiUrl" />
 
-    <div v-if="!voiceControlsRef?.speech?.isSupported?.value" role="alert">
+    <div v-if="!voiceControlsRef?.speech?.isSupported" role="alert">
       Your browser does not support SpeechSynthesis API,
       <a
         href="https://caniuse.com/mdn-api_speechsynthesis"
@@ -40,14 +49,11 @@ const handleJKeyPress = () => {
       <div>
         <h1>🤖 Joke Teller</h1>
         <div
-          v-if="jokeFetcherRef?.error?.value"
+          v-if="errorMessage"
           role="alert"
           aria-live="polite"
         >
-          {{
-            "Error: " +
-            (jokeFetcherRef.error.value?.message || "Failed to load joke")
-          }}
+          Error: {{ errorMessage }}
         </div>
 
         <section aria-labelledby="controls-heading">

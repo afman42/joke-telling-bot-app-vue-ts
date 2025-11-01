@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useSpeechSynthesis } from "@vueuse/core";
 import { ref, watch } from "vue";
 import type { IDataJoke } from "../../types";
 import { useGlobalToast } from "../../store";
+import { useSpeechSynthesis } from "../../composables/useSpeechSynthesis";
 
 interface Props {
   joke: IDataJoke | null;
@@ -24,21 +24,31 @@ const voice = ref<SpeechSynthesisVoice | undefined>(undefined);
 const pitch = ref(1);
 const rate = ref(1);
 
-// Create speech synthesis instance once with reactive text
-const speech = useSpeechSynthesis(currentText, {
+// Create speech synthesis instance once
+const speech = useSpeechSynthesis(currentText.value, {
   lang: "en-US",
-  voice: voice as any, // Type assertion to avoid strict typing issues
-  pitch,
-  rate,
+  voice: voice.value || null,
+  pitch: pitch.value,
+  rate: rate.value,
+  volume: 1
 });
 
 // Watch for joke changes and update speech text
 watch(() => props.joke, (newJoke) => {
   if (newJoke && typeof newJoke.setup === 'string' && newJoke.setup.trim() !== '') {
-    currentText.value = newJoke.setup;
+    speech.setText(newJoke.setup);
   } else {
-    currentText.value = "No joke available. Please try again.";
+    speech.setText("No joke available. Please try again.");
   }
+});
+
+// Watch for changes in pitch and rate
+watch(pitch, (newPitch) => {
+  speech.setPitch(newPitch);
+});
+
+watch(rate, (newRate) => {
+  speech.setRate(newRate);
 });
 
 // Function to play the joke
@@ -104,7 +114,7 @@ defineExpose({
 
   <div class="action-group">
     <button 
-      :disabled="speech.isPlaying.value || isFetching" 
+      :disabled="speech.isPlaying || isFetching" 
       @click="play"
       aria-label="Tell me this joke"
     >

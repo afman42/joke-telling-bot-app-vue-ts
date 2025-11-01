@@ -50,19 +50,28 @@ if (!(window as any).speechSynthesis) {
   });
 }
 
-// Mock the useSpeechSynthesis hook
-vi.mock('@vueuse/core', async () => {
-  const actual: any = await vi.importActual('@vueuse/core');
-  return {
-    ...actual,
-    useSpeechSynthesis: vi.fn(() => ({
-      text: ref("Loading joke..."),
-      speak: vi.fn(),
-      isPlaying: ref(false),
-      isSupported: true,
-    }))
-  };
-});
+// Mock the useSpeechSynthesis hook from our custom composable
+vi.mock('../../src/composables/useSpeechSynthesis', () => ({
+  useSpeechSynthesis: vi.fn(() => ({
+    isSupported: true,
+    isPlaying: false,
+    speak: vi.fn(),
+    pause: vi.fn(),
+    resume: vi.fn(),
+    stop: vi.fn(),
+    toggle: vi.fn(),
+    text: "Loading joke...",
+    setText: vi.fn(),
+    lang: "en-US",
+    setLang: vi.fn(),
+    pitch: 1,
+    setPitch: vi.fn(),
+    rate: 1,
+    setRate: vi.fn(),
+    volume: 1,
+    setVolume: vi.fn(),
+  }))
+}));
 
 describe('VoiceControls.vue', () => {
   beforeEach(() => {

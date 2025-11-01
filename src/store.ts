@@ -1,13 +1,13 @@
-import { createGlobalState } from "@vueuse/core";
-import { ref } from "vue";
+import { shallowRef } from "vue";
 
-export const useGlobalToast = createGlobalState(() => {
-  const refToast = ref({
-    message: "",
-    show: false,
-  });
-
-  return {
-    refToast,
-  };
+// Create a global state for toast notifications
+const globalToastState = shallowRef({
+  message: "",
+  show: false,
 });
+
+export const useGlobalToast = () => {
+  return {
+    refToast: globalToastState,
+  };
+};

@@ -18,27 +18,26 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { refToast } = useGlobalToast();
 
+// Store the current joke text separately
+const currentText = ref("Loading joke...");
 const voice = ref<SpeechSynthesisVoice | undefined>(undefined);
 const pitch = ref(1);
 const rate = ref(1);
 
-// Create speech synthesis instance once
-const speech = useSpeechSynthesis(
-  "Loading joke...", // Initial placeholder text
-  {
-    lang: "en-US",
-    voice,
-    pitch,
-    rate,
-  }
-);
+// Create speech synthesis instance once with reactive text
+const speech = useSpeechSynthesis(currentText, {
+  lang: "en-US",
+  voice: voice as any, // Type assertion to avoid strict typing issues
+  pitch,
+  rate,
+});
 
 // Watch for joke changes and update speech text
 watch(() => props.joke, (newJoke) => {
   if (newJoke && typeof newJoke.setup === 'string' && newJoke.setup.trim() !== '') {
-    speech.text.value = newJoke.setup;
+    currentText.value = newJoke.setup;
   } else {
-    speech.text.value = "No joke available. Please try again.";
+    currentText.value = "No joke available. Please try again.";
   }
 });
 

@@ -27,7 +27,7 @@ const handleJKeyPress = () => {
   <div role="main" aria-label="Joke Telling Bot Application">
     <JokeFetcher ref="jokeFetcherRef" :url="apiUrl" />
 
-    <div v-if="!voiceControlsRef?.speech?.isSupported" role="alert">
+    <div v-if="!voiceControlsRef?.speech?.isSupported?.value" role="alert">
       Your browser does not support SpeechSynthesis API,
       <a
         href="https://caniuse.com/mdn-api_speechsynthesis"
@@ -55,9 +55,9 @@ const handleJKeyPress = () => {
 
           <VoiceControls
             ref="voiceControlsRef"
-            :joke="jokeFetcherRef?.currentJoke"
-            :is-fetching="jokeFetcherRef?.isFetching"
-            :status-code="jokeFetcherRef?.statusCode"
+            :joke="jokeFetcherRef?.currentJoke || null"
+            :is-fetching="jokeFetcherRef?.isFetching || false"
+            :status-code="jokeFetcherRef?.statusCode || null"
           />
         </section>
       </div>

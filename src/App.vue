@@ -1,98 +1,82 @@
 <script setup lang="ts">
-import { useSpeechSynthesis, useFetch } from "@vueuse/core";
-import { ref, onMounted, watchEffect } from "vue";
-import { useGlobalToast } from "./store"
-import Toast from "./components/Toast.vue"
+import Toast from "./components/Toast.vue";
+import JokeFetcher from "./components/Joke/JokeFetcher.vue";
+import VoiceControls from "./components/Joke/VoiceControls.vue";
+import KeyboardHandler from "./components/Joke/KeyboardHandler.vue";
+import { ref } from "vue";
 
-const { data, isFetching, error, execute, statusCode } = useFetch<IDataJoke[]>(import.meta.env.VITE_JOKE_URL).get().json();
-let speech: ReturnType<typeof useSpeechSynthesis>;
-let { refToast } = useGlobalToast();
+// Get the API URL - fallback to empty string if environment variable is not available
+const apiUrl = import.meta.env.VITE_JOKE_URL || "";
 
-const voice = ref<SpeechSynthesisVoice>(
-  undefined as unknown as SpeechSynthesisVoice
-);
-const pitch = ref(1);
-const rate = ref(1);
+// Reference to child components
+const jokeFetcherRef = ref<InstanceType<typeof JokeFetcher> | null>(null);
+const voiceControlsRef = ref<InstanceType<typeof VoiceControls> | null>(null);
 
-watchEffect(() => {
-  speech = useSpeechSynthesis(
-      !isFetching.value && data.value != null ? data.value[0].setup : "Restart Again",
-      {
-        lang: "en-US",
-        voice,
-        pitch,
-        rate,
-      }
-    );
-})
-
-async function onKeyUpKeyboard(event: KeyboardEvent){
-  if(['j',"J"].includes(event.key)){
-    play();
-    execute();
+// Handler for J key press
+const handleJKeyPress = () => {
+  if (voiceControlsRef.value) {
+    voiceControlsRef.value.play();
   }
-}
-
-onMounted(() => {
-  document.body.addEventListener('keyup',onKeyUpKeyboard)
-});
-function play() {
-  window.speechSynthesis.cancel();
-  refToast.value = {
-    show: true,
-    message: "Refresh"
+  if (jokeFetcherRef.value) {
+    jokeFetcherRef.value.executeWithRetry();
   }
-  if(!isFetching.value && statusCode.value === 200) {
-    setTimeout(function(){ 
-      refToast.value = {
-        show: false,
-        message: ''
-      }
-    }, 3000);
-    speech.speak();
-  }
-}
+};
 </script>
 
 <template>
-  <div>
-    <div v-if="!speech.isSupported">
+  <div role="main" aria-label="Joke Telling Bot Application">
+    <JokeFetcher ref="jokeFetcherRef" :url="apiUrl" />
+
+    <div v-if="!voiceControlsRef?.speech?.isSupported" role="alert">
       Your browser does not support SpeechSynthesis API,
-      <a href="https://caniuse.com/mdn-api_speechsynthesis" target="_blank"
+      <a
+        href="https://caniuse.com/mdn-api_speechsynthesis"
+        target="_blank"
+        rel="noopener noreferrer"
         >more details</a
       >
     </div>
     <div v-else>
       <div>
-        <div style="font-size: 100px;">🤖</div>
-        <div>{{ error ? "Error :" + error : "" }}</div>
-
-        <br />
-        <div>
-          <label>Pitch</label>
-          <div>
-            <input v-model="pitch" type="range" min="0.5" max="2" step="0.1" />
-          </div>
+        <h1>🤖 Joke Teller</h1>
+        <div
+          v-if="jokeFetcherRef?.error?.value"
+          role="alert"
+          aria-live="polite"
+        >
+          {{
+            "Error: " +
+            (jokeFetcherRef.error.value?.message || "Failed to load joke")
+          }}
         </div>
 
-        <br />
-        <div>
-          <label>Rate</label>
-          <div>
-            <input v-model="rate" type="range" min="0.5" max="2" step="0.1" />
-          </div>
-        </div>
+        <section aria-labelledby="controls-heading">
+          <h2 id="controls-heading" class="sr-only">Voice Controls</h2>
 
-        <div>
-          <button :disabled="speech.isPlaying.value || isFetching" @click="() => {
-            play();
-            execute();
-          }">
-            Telling me about Joke
-          </button>
-        </div>
+          <VoiceControls
+            ref="voiceControlsRef"
+            :joke="jokeFetcherRef?.currentJoke"
+            :is-fetching="jokeFetcherRef?.isFetching"
+            :status-code="jokeFetcherRef?.statusCode"
+          />
+        </section>
       </div>
     </div>
-    <Toast/>
+    <KeyboardHandler @j-key="handleJKeyPress" />
+    <Toast />
   </div>
 </template>
+
+<style>
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+</style>

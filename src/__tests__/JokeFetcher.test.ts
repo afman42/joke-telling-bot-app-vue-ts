@@ -5,7 +5,7 @@ import JokeFetcher from '../../src/components/Joke/JokeFetcher.vue';
 
 // Mock the global fetch API
 const mockFetch = vi.fn();
-global.fetch = mockFetch as any;
+(global as any).fetch = mockFetch;
 
 // Mock the store
 vi.mock('../../src/store', () => ({

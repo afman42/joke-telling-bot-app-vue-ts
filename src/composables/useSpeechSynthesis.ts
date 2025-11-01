@@ -29,7 +29,8 @@ export interface UseSpeechSynthesisReturn {
 }
 
 export function useSpeechSynthesis(initialText: string, options: SpeechSynthesisOptions = {}): UseSpeechSynthesisReturn {
-  const isSupported = 'speechSynthesis' in window;
+  // Check for both speechSynthesis API and the SpeechSynthesisUtterance constructor
+  const isSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
   const isPlaying = ref(false);
   const text = ref(initialText);
   const lang = ref(options.lang || 'en-US');
@@ -40,6 +41,8 @@ export function useSpeechSynthesis(initialText: string, options: SpeechSynthesis
   let utterance: SpeechSynthesisUtterance | null = null;
   
   const updateUtterance = () => {
+    if (!isSupported) return;
+    
     // Always create a new utterance to avoid state issues
     utterance = new SpeechSynthesisUtterance(text.value);
     utterance.lang = lang.value;
@@ -67,24 +70,30 @@ export function useSpeechSynthesis(initialText: string, options: SpeechSynthesis
     if (!isSupported) return;
     
     updateUtterance();
-    if (utterance) {
-      window.speechSynthesis.speak(utterance);
+    if (utterance && 'speechSynthesis' in window) {
+      (window as any).speechSynthesis.speak(utterance);
     }
   };
 
   const pause = () => {
     if (!isSupported) return;
-    window.speechSynthesis.pause();
+    if ('speechSynthesis' in window) {
+      (window as any).speechSynthesis.pause();
+    }
   };
 
   const resume = () => {
     if (!isSupported) return;
-    window.speechSynthesis.resume();
+    if ('speechSynthesis' in window) {
+      (window as any).speechSynthesis.resume();
+    }
   };
 
   const stop = () => {
     if (!isSupported) return;
-    window.speechSynthesis.cancel();
+    if ('speechSynthesis' in window) {
+      (window as any).speechSynthesis.cancel();
+    }
     isPlaying.value = false;
   };
 

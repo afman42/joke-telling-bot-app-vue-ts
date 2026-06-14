@@ -8,6 +8,7 @@ describe('store.ts', () => {
     expect(refToast.value).toEqual({
       message: '',
       show: false,
+      duration: 3000,
     });
   });
 
@@ -16,12 +17,14 @@ describe('store.ts', () => {
     
     refToast.value = {
       show: true,
-      message: 'Test message'
+      message: 'Test message',
+      duration: 3000,
     };
     
     expect(refToast.value).toEqual({
       show: true,
-      message: 'Test message'
+      message: 'Test message',
+      duration: 3000,
     });
   });
 });

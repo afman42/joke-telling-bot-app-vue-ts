@@ -1,74 +1,84 @@
 <script setup lang="ts">
+import { ref, computed } from "vue";
 import Toast from "./components/Toast.vue";
 import JokeFetcher from "./components/Joke/JokeFetcher.vue";
 import VoiceControls from "./components/Joke/VoiceControls.vue";
 import KeyboardHandler from "./components/Joke/KeyboardHandler.vue";
-import { ref, computed } from "vue";
+import type { IDataJoke } from "./types";
 
-// Get the API URL - fallback to empty string if environment variable is not available
+interface JokeFetcherAPI {
+  error: { value: Error | null };
+  isFetching: { value: boolean };
+  statusCode: { value: number | null };
+  currentJoke: { value: IDataJoke | null };
+  executeWithRetry: (maxRetries?: number) => Promise<void>;
+}
+
+interface VoiceControlsAPI {
+  play: () => void;
+  speech: { isSupported: boolean };
+}
+
 const apiUrl = import.meta.env.VITE_JOKE_URL || "";
 
-// Reference to child components
-const jokeFetcherRef = ref<InstanceType<typeof JokeFetcher> | null>(null);
-const voiceControlsRef = ref<InstanceType<typeof VoiceControls> | null>(null);
+const jokeFetcherRef = ref<JokeFetcherAPI | null>(null);
+const voiceControlsRef = ref<VoiceControlsAPI | null>(null);
 
-// Computed property to safely access error message
 const errorMessage = computed(() => {
-  const errorRef = (jokeFetcherRef.value as any)?.error; // Type assertion to avoid typing issues
-  if (errorRef?.value) {
-    return errorRef.value.message || "Failed to load joke";
+  if (jokeFetcherRef.value?.error?.value) {
+    return jokeFetcherRef.value.error.value.message || "Failed to load joke";
   }
   return null;
 });
 
-// Handler for J key press
 const handleJKeyPress = () => {
-  if (voiceControlsRef.value) {
-    voiceControlsRef.value.play();
-  }
-  if (jokeFetcherRef.value) {
-    jokeFetcherRef.value.executeWithRetry();
-  }
+  voiceControlsRef.value?.play();
+  jokeFetcherRef.value?.executeWithRetry();
 };
 </script>
 
 <template>
   <div role="main" aria-label="Joke Telling Bot Application">
-    <JokeFetcher ref="jokeFetcherRef" :url="apiUrl" />
-
-    <div v-if="!voiceControlsRef?.speech?.isSupported" role="alert">
-      Your browser does not support SpeechSynthesis API,
-      <a
-        href="https://caniuse.com/mdn-api_speechsynthesis"
-        target="_blank"
-        rel="noopener noreferrer"
-        >more details</a
-      >
+    <div v-if="!apiUrl" role="alert">
+      No joke API URL configured. Set <code>VITE_JOKE_URL</code> environment variable.
     </div>
-    <div v-else>
-      <div>
-        <h1>🤖 Joke Teller</h1>
-        <div
-          v-if="errorMessage"
-          role="alert"
-          aria-live="polite"
+    <template v-else>
+      <JokeFetcher ref="jokeFetcherRef" :url="apiUrl" />
+
+      <div v-if="!voiceControlsRef?.speech?.isSupported" role="alert">
+        Your browser does not support SpeechSynthesis API,
+        <a
+          href="https://caniuse.com/mdn-api_speechsynthesis"
+          target="_blank"
+          rel="noopener noreferrer"
+          >more details</a
         >
-          Error: {{ errorMessage }}
-        </div>
-
-        <section aria-labelledby="controls-heading">
-          <h2 id="controls-heading" class="sr-only">Voice Controls</h2>
-
-          <VoiceControls
-            ref="voiceControlsRef"
-            :joke="jokeFetcherRef?.currentJoke || null"
-            :is-fetching="jokeFetcherRef?.isFetching || false"
-            :status-code="jokeFetcherRef?.statusCode || null"
-          />
-        </section>
       </div>
-    </div>
-    <KeyboardHandler @j-key="handleJKeyPress" />
+      <div v-else>
+        <div>
+          <h1>Joke Teller</h1>
+          <div
+            v-if="errorMessage"
+            role="alert"
+            aria-live="polite"
+          >
+            Error: {{ errorMessage }}
+          </div>
+
+          <section aria-labelledby="controls-heading">
+            <h2 id="controls-heading" class="sr-only">Voice Controls</h2>
+
+            <VoiceControls
+              ref="voiceControlsRef"
+              :joke="jokeFetcherRef?.currentJoke?.value ?? null"
+              :is-fetching="jokeFetcherRef?.isFetching?.value ?? false"
+              :status-code="jokeFetcherRef?.statusCode?.value ?? null"
+            />
+          </section>
+        </div>
+      </div>
+      <KeyboardHandler @j-key="handleJKeyPress" />
+    </template>
     <Toast />
   </div>
 </template>

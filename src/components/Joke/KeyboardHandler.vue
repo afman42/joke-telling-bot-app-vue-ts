@@ -19,6 +19,5 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <!-- This component just handles keyboard events -->
-  <div style="display: none;" />
+  <slot />
 </template>

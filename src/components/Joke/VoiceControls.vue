@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { watch } from "vue";
 import type { IDataJoke } from "../../types";
 import { useGlobalToast } from "../../store";
 import { useSpeechSynthesis } from "../../composables/useSpeechSynthesis";
@@ -18,75 +18,55 @@ const props = withDefaults(defineProps<Props>(), {
 
 const { refToast } = useGlobalToast();
 
-// Store the current joke text separately
-const currentText = ref("Loading joke...");
-const voice = ref<SpeechSynthesisVoice | undefined>(undefined);
-const pitch = ref(1);
-const rate = ref(1);
-
-// Create speech synthesis instance once
-const speech = useSpeechSynthesis(currentText.value, {
+const speech = useSpeechSynthesis("Loading joke...", {
   lang: "en-US",
-  voice: voice.value || null,
-  pitch: pitch.value,
-  rate: rate.value,
+  pitch: 1,
+  rate: 1,
   volume: 1
 });
 
-// Watch for joke changes and update speech text
 watch(() => props.joke, (newJoke) => {
   if (newJoke && typeof newJoke.setup === 'string' && newJoke.setup.trim() !== '') {
-    speech.setText(newJoke.setup);
+    speech.text.value = newJoke.setup + ". " + newJoke.punchline;
   } else {
-    speech.setText("No joke available. Please try again.");
+    speech.text.value = "No joke available. Please try again.";
   }
 });
 
-// Watch for changes in pitch and rate
-watch(pitch, (newPitch) => {
-  speech.setPitch(newPitch);
-});
-
-watch(rate, (newRate) => {
-  speech.setRate(newRate);
-});
-
-// Function to play the joke
 const play = () => {
-  window.speechSynthesis.cancel();
+  speech.stop();
   refToast.value = {
     show: true,
-    message: "Refresh"
+    message: "Refresh",
+    duration: 3000
   };
-  
+
   if (!props.isFetching && props.statusCode === 200) {
-    setTimeout(() => { 
-      refToast.value = {
-        show: false,
-        message: ''
-      };
-    }, 3000);
     speech.speak();
   }
 };
 
-// Expose play function to parent
 defineExpose({
   play,
   speech,
-  pitch,
-  rate
+  pitch: speech.pitch,
+  rate: speech.rate
 });
 </script>
 
 <template>
+  <div v-if="joke && joke.setup" class="joke-card">
+    <p class="joke-setup">{{ joke.setup }}</p>
+    <p class="joke-punchline">{{ joke.punchline }}</p>
+  </div>
+
   <div class="voice-controls">
     <div class="control-group">
       <label for="pitch-slider">Pitch</label>
       <div>
         <input 
           id="pitch-slider" 
-          v-model="pitch" 
+          v-model="speech.pitch.value" 
           type="range" 
           min="0.5" 
           max="2" 
@@ -101,7 +81,7 @@ defineExpose({
       <div>
         <input 
           id="rate-slider" 
-          v-model="rate" 
+          v-model="speech.rate.value" 
           type="range" 
           min="0.5" 
           max="2" 
@@ -114,7 +94,7 @@ defineExpose({
 
   <div class="action-group">
     <button 
-      :disabled="speech.isPlaying || isFetching" 
+      :disabled="speech.isPlaying.value || isFetching" 
       @click="play"
       aria-label="Tell me this joke"
     >
@@ -124,6 +104,27 @@ defineExpose({
 </template>
 
 <style scoped>
+.joke-card {
+  background: rgba(100, 108, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin: 1rem 0 1.5rem;
+  border: 1px solid rgba(100, 108, 255, 0.15);
+}
+
+.joke-setup {
+  font-size: 1.2em;
+  font-weight: 500;
+  margin: 0 0 1rem;
+}
+
+.joke-punchline {
+  font-size: 1.1em;
+  font-style: italic;
+  margin: 0;
+  opacity: 0.9;
+}
+
 .control-group {
   margin: 1rem 0;
 }

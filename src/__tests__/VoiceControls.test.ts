@@ -3,14 +3,12 @@ import { mount } from '@vue/test-utils';
 import { ref } from 'vue';
 import VoiceControls from '../../src/components/Joke/VoiceControls.vue';
 
-// Mock the store
 vi.mock('../../src/store', () => ({
   useGlobalToast: vi.fn(() => ({
-    refToast: ref({ show: false, message: '' })
+    refToast: ref({ show: false, message: '', duration: 3000 })
   }))
 }));
 
-// Check if SpeechSynthesisUtterance is already defined before defining it
 if (!(window as any).SpeechSynthesisUtterance) {
   class MockSpeechSynthesisUtterance {
     text: string;
@@ -18,6 +16,7 @@ if (!(window as any).SpeechSynthesisUtterance) {
     voice: any;
     pitch: number;
     rate: number;
+    volume: number;
 
     constructor(text: string) {
       this.text = text;
@@ -25,6 +24,7 @@ if (!(window as any).SpeechSynthesisUtterance) {
       this.voice = null;
       this.pitch = 1;
       this.rate = 1;
+      this.volume = 1;
     }
   }
 
@@ -33,7 +33,6 @@ if (!(window as any).SpeechSynthesisUtterance) {
   });
 }
 
-// Check if speechSynthesis is already mocked before mocking it
 if (!(window as any).speechSynthesis) {
   const mockSpeechSynthesis = {
     speak: vi.fn(),
@@ -41,8 +40,8 @@ if (!(window as any).speechSynthesis) {
     pause: vi.fn(),
     resume: vi.fn(),
     getVoices: vi.fn(() => []),
-    isSupported: true,
-    isPlaying: ref(false),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
   };
 
   Object.defineProperty(window, 'speechSynthesis', {
@@ -50,26 +49,26 @@ if (!(window as any).speechSynthesis) {
   });
 }
 
-// Mock the useSpeechSynthesis hook from our custom composable
 vi.mock('../../src/composables/useSpeechSynthesis', () => ({
   useSpeechSynthesis: vi.fn(() => ({
     isSupported: true,
-    isPlaying: false,
+    isPlaying: ref(false),
     speak: vi.fn(),
     pause: vi.fn(),
     resume: vi.fn(),
     stop: vi.fn(),
     toggle: vi.fn(),
-    text: "Loading joke...",
+    text: ref("Loading joke..."),
     setText: vi.fn(),
-    lang: "en-US",
+    lang: ref("en-US"),
     setLang: vi.fn(),
-    pitch: 1,
+    pitch: ref(1),
     setPitch: vi.fn(),
-    rate: 1,
+    rate: ref(1),
     setRate: vi.fn(),
-    volume: 1,
+    volume: ref(1),
     setVolume: vi.fn(),
+    voices: ref([]),
   }))
 }));
 
@@ -90,6 +89,44 @@ describe('VoiceControls.vue', () => {
     expect(wrapper.find('#pitch-slider').exists()).toBe(true);
     expect(wrapper.find('#rate-slider').exists()).toBe(true);
     expect(wrapper.find('button').exists()).toBe(true);
+  });
+
+  it('displays joke setup and punchline', () => {
+    const wrapper = mount(VoiceControls, {
+      props: {
+        joke: { type: 'general', setup: 'Why did the chicken cross the road?', punchline: 'To get to the other side!', id: 1 },
+        isFetching: false,
+        statusCode: 200
+      }
+    });
+    
+    expect(wrapper.find('.joke-card').exists()).toBe(true);
+    expect(wrapper.find('.joke-setup').text()).toBe('Why did the chicken cross the road?');
+    expect(wrapper.find('.joke-punchline').text()).toBe('To get to the other side!');
+  });
+
+  it('hides joke card when joke is null', () => {
+    const wrapper = mount(VoiceControls, {
+      props: {
+        joke: null,
+        isFetching: false,
+        statusCode: 200
+      }
+    });
+    
+    expect(wrapper.find('.joke-card').exists()).toBe(false);
+  });
+
+  it('hides joke card when setup is empty', () => {
+    const wrapper = mount(VoiceControls, {
+      props: {
+        joke: { type: 'general', setup: '', punchline: 'test', id: 1 },
+        isFetching: false,
+        statusCode: 200
+      }
+    });
+    
+    expect(wrapper.find('.joke-card').exists()).toBe(false);
   });
 
   it('disables button when fetching', () => {
@@ -117,7 +154,6 @@ describe('VoiceControls.vue', () => {
     const button = wrapper.find('button');
     await button.trigger('click');
     
-    // Since play is exposed through defineExpose, we need to check the component instance
     expect(wrapper.vm.play).toBeDefined();
   });
 });
